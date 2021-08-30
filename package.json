@@ -1,7 +1,10 @@
 {
   "name": "hawkthorne-js",
   "version": "0.1.0",
-  "private": true,
+  "description": "Journey to the Center of Hawkthorne written in Javascript.",
+  "author": "Tim Schwartz <tim@metaverse.systems>",
+  "license": "MIT",
+  "private": false,
   "dependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^11.2.7",
