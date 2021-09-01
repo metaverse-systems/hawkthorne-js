@@ -48,10 +48,10 @@ class SpriteAnimation
           // multiple x coords in one entry, split them up
           let [startX, endX] = x.split("-");
           for(let i = startX; i <= endX; i++) {
-            this.loop.push((i - 1) + "," + (y - 1));
+            this.loop.push({ x: (i - 1), y: (y - 1) });
           }
         } else {
-          this.loop.push((x - 1) + "," + (y - 1));
+          this.loop.push({ x: (x - 1), y: (y - 1) });
         }
       });
     }
@@ -68,12 +68,10 @@ class SpriteAnimation
   draw = (x, y, scale) => {
     if(this.loop.length === 0) return;
 
-    let [spriteX, spriteY] = this.loop[this.frame].split(",");
+    this.sheet.draw(this.loop[this.frame].x, this.loop[this.frame].y, x, y, scale);
     this.frame++;
 
     if(this.frame === this.loop.length) this.frame = 0;
-
-    this.sheet.draw(spriteX, spriteY, x, y, scale);
   }
 };
 
