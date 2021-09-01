@@ -1,10 +1,16 @@
 import React, { Component } from "react";
 import './App.css';
-import SpriteAnimation from './SpriteAnimation';
+import { Manager } from "@metaverse-systems/libecs-js";
+import { SpriteComponent, PositionComponent } from "./Components";
+import DrawingSystem from "./DrawingSystem";
 
-const charactersBaseURL = "https://raw.githubusercontent.com/hawkthorne/hawkthorne-journey/master/src/images/characters/";
-const characterMapURL = "https://raw.githubusercontent.com/hawkthorne/hawkthorne-journey/master/src/character_map.json";
-const characters = [
+const ECS = new Manager();
+
+const baseURL = "https://raw.githubusercontent.com/hawkthorne/hawkthorne-journey/master";
+const characterBaseURL = baseURL + "/src/characters/";
+const characterImagesBaseURL = baseURL + "/src/images/characters/";
+const characterMapURL = baseURL + "/src/character_map.json";
+const characterNames = [
   "abed", "britta", "chang", "duncan", "garrett", "guzman", "leonard", "rich",     "troy", "vicedean",
   "annie", "buddy", "dean", "fatneil", "gilbert", "jeff", "pierce", "shirley", "vaughn", "vicki"
 ];
@@ -18,13 +24,20 @@ class App extends Component {
     this.state = {
       animation: "walk",
       direction: "right",
-      characterMap: {}
+      characterMap: {},
+      characters: {},
+      drawingSystem: new DrawingSystem({
+        width: window.innerWidth,
+        height: window.innerHeight
+      })
     };
 
-    this.sprites = [];
+    this.world = ECS.Container();
+    this.world.System(this.state.drawingSystem);
   }
 
   componentDidMount = () => {
+    this.handleResize();
     fetch(characterMapURL)
     .then((response) => response.json())
     .then((data) => {
@@ -32,38 +45,68 @@ class App extends Component {
         this.initialize();
       });
     });
+
+    characterNames.forEach((name) => {
+      let cURL = characterBaseURL + name + ".json";
+      fetch(cURL)
+      .then((response) => response.json())
+      .then((data) => {
+        let characters = Object.assign({}, this.state.characters);
+        characters[name] = data;
+        this.setState({ characters: characters });
+      });
+    });
+  }
+
+  handleResize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if(this.state.drawingSystem !== null) {
+      this.state.drawingSystem.ConfigUpdate({ height: height, width: width, board: document.getElementById('board') });
+    }
   }
 
   initialize = () => {
     let canvas = document.getElementById('board');
 
-    characters.forEach((c) => {
-      let spriteURL = charactersBaseURL + c + "/" + costume + ".png";
-      this.sprites.push(new SpriteAnimation(canvas, spriteURL, 48, 48, this.state.characterMap));
+    let x = 0;
+    let y = 50;
+    characterNames.forEach((c) => {
+      let spriteURL = characterImagesBaseURL + c + "/" + costume + ".png";
+      let e = this.world.Entity();
+      e.Component(new PositionComponent({ x: x, y: y }));
+      e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48, 
+        characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
+
+      x += 100;
+      if(x > 900) {
+        x = 0;
+        y += 100;
+      }
     });
 
-    setInterval(() => {
-      let ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let x = 0;
-      let y = 50;
-      this.sprites.forEach((sprite) => {
-        sprite.animate(this.state.animation, this.state.direction, x, y, 2);
-        x += 100;
-        if(x > 900) {
-          x = 0;
-          y += 100;
-        }
-      });
-    }, 250);
+    console.log(this.world.Export());
+    this.world.Start(250);
   }
 
   changeAnimation = (e) => {
-    this.setState({ animation: e.target.value });
+    this.setState({ animation: e.target.value }, () => {
+      this.updateSpriteComponent();
+    });
   }
 
   changeDirection = (e) => {
-    this.setState({ direction: e.target.value });
+    this.setState({ direction: e.target.value }, () => {
+      this.updateSpriteComponent();
+    });
+  }
+
+  updateSpriteComponent = () => {
+    Object.keys(this.world.Components["SpriteComponent"]).forEach((entity) => {
+      this.world.Components["SpriteComponent"][entity].animation = this.state.animation;
+      this.world.Components["SpriteComponent"][entity].direction = this.state.direction;
+    });
   }
 
   render() {
