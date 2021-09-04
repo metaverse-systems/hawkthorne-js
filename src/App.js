@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import './App.css';
 import { Manager } from "@metaverse-systems/libecs-js";
-import { SpriteComponent, PositionComponent, TileComponent, TilesheetComponent } from "./Components";
+import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
 import tmx2json from "./tmx2json";
 import Maps from "./maps.json";
@@ -79,6 +79,13 @@ class App extends Component {
         this.buildLayer(layer, t.tilesets[0]);
       });
 
+      t.objectgroups.forEach((group) => {
+        group.objects.forEach((o) => {
+          this.buildObject(o);
+        });
+      });
+
+      console.log(this.world.Export());
     }, 500);
   }
 
@@ -101,8 +108,20 @@ class App extends Component {
       }
     });
 
-    console.log(this.world.Export());
     this.world.Start(250);
+  }
+
+  buildObject = (o) => {
+    if(o.type !== "sprite") return;
+
+    let url = baseURL + "/src/" + o.properties.sheet;
+
+    let e = this.world.Entity();
+    e.Component(new PositionComponent({ x: o.x, y: o.y }));
+
+    let options = { flipHorizontal: o.properties.flip === "true" ? true : false };
+    e.Component(new StaticSpriteComponent({ canvas: document.getElementById('board'), url: url, width: o.properties.width,
+                                            height: o.properties.height, x: o.x, y: o.y, options: options }));
   }
 
   buildLayer = (layer, tileset) => {
@@ -172,6 +191,10 @@ class App extends Component {
 
   destroyTiles = () => {
     Object.keys(this.world.Components["TileComponent"]).forEach((entity) => {
+      this.world.Entity(entity).destroy();
+    });
+
+    Object.keys(this.world.Components["StaticSpriteComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
   }

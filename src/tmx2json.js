@@ -19,6 +19,7 @@ class tmx2json
 
       this.tilesets = [];
       this.layers = [];
+      this.objectgroups = [];
 
       for(let i = 0; i < tmx_map.childNodes.length; i++) {
         let nodeName = tmx_map.childNodes[i].nodeName;
@@ -33,6 +34,9 @@ class tmx2json
           case "layer":
             this.layers.push(new Layer(tmx_map.childNodes[i]));
             break;
+          case "objectgroup":
+            this.objectgroups.push(new ObjectGroup(tmx_map.childNodes[i]));
+            break;
           case "#text":
             break;
           default:
@@ -41,6 +45,61 @@ class tmx2json
         }
       }
     });
+  }
+}
+
+class ObjectGroup
+{
+  constructor(xml) {
+    for(let i = 0; i < xml.attributes.length; i++) {
+      let name = xml.attributes[i].name;
+      let value = xml.attributes[i].textContent;
+
+      this[name] = value;
+    }
+
+    this.objects = [];
+    for(let i = 0; i < xml.childNodes.length; i++) {
+      let nodeName = xml.childNodes[i].nodeName;
+      switch(nodeName)
+      {
+        case "object":
+          this.objects.push(new TMX_Object(xml.childNodes[i]));
+          break;
+        case "#text":
+          break;
+        default:
+          console.log("ObjectGroup: Unknown node " + nodeName);
+          break;
+      }
+    }
+  }
+}
+
+class TMX_Object
+{
+  constructor(xml) { 
+    for(let i = 0; i < xml.attributes.length; i++) {
+      let name = xml.attributes[i].name;
+      let value = xml.attributes[i].textContent;
+
+      this[name] = value;
+    }
+
+    for(let i = 0; i < xml.childNodes.length; i++) {
+      let nodeName = xml.childNodes[i].nodeName;
+      switch(nodeName)
+      {
+        case "properties":
+          this.properties = new ObjectProperties(xml.childNodes[i]);
+          break;
+        case "#text":
+          break;
+        default:
+          console.log("TMX_Object: Unknown node " + nodeName);
+          break;
+      }
+    }
   }
 }
 
@@ -56,9 +115,39 @@ class Properties
           for(let j = 0; j < attr.length; j++) {
             let name = attr[j].name;
             let value = attr[j].textContent;
-
             this[name] = value;
           }
+          break;
+        case "#text":
+          break;
+        default:
+          console.log("Unknown node " + nodeName);
+          break;
+      }
+    }
+  }
+}
+
+class ObjectProperties
+{
+  constructor(xml) {
+    for(let i = 0; i < xml.childNodes.length; i++) {
+      let nodeName = xml.childNodes[i].nodeName;
+      switch(nodeName)
+      {
+        case "property":
+          let attr = xml.childNodes[i].attributes;
+          let name = "";
+          let value = "";
+          for(let j = 0; j < attr.length; j++) {
+            if(attr[j].name === "name") {
+              name = attr[j].textContent;
+            }
+            if(attr[j].name === "value") {
+              value = attr[j].textContent;
+            }
+          }
+          this[name] = value;
           break;
         case "#text":
           break;
@@ -119,8 +208,11 @@ class Layer
         case "data":
           this.tiles = new TMX_Data(xml.childNodes[i]).tiles;
           break;
+        case "properties":
+          this.properties = new Properties(xml.childNodes[i]);
+          break;
         default:
-          console.log("Tileset: Unknown node " + nodeName);
+          console.log("Layer: Unknown node " + nodeName);
           break;
       }
     }

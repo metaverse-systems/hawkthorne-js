@@ -44,6 +44,17 @@ class DrawingSystem extends System
       sheet.draw(tile.x, tile.y, pos.x * tile.width, pos.y * tile.height, tile.options);
     });
 
+    if(this.Container.Components["StaticSpriteComponent"] !== undefined)
+    Object.keys(this.Container.Components["StaticSpriteComponent"]).forEach((entity) => {
+      let sprite = this.Container.Components["StaticSpriteComponent"][entity];
+      let pos = this.Container.Components["PositionComponent"][entity];
+
+
+      if(sprite.sprite) {
+        sprite.sprite.draw(0, 0, pos.x, pos.y, sprite.options);
+      }
+    });
+
     if(this.Container.Components["SpriteComponent"] !== undefined)
     Object.keys(this.Container.Components["SpriteComponent"]).forEach((entity) => {
       let sprite = this.Container.Components["SpriteComponent"][entity];

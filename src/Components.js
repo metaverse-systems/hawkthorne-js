@@ -1,5 +1,6 @@
 import { Component } from "@metaverse-systems/libecs-js";
 import SpriteAnimation from "./SpriteAnimation";
+import SpriteSheet from "./SpriteSheet";
 
 class SpriteComponent extends Component
 {
@@ -7,6 +8,15 @@ class SpriteComponent extends Component
     super(config);
     this.sprite = new SpriteAnimation(config.canvas, config.url, config.width, config.height, config.characterMap);
     this.Type = "SpriteComponent";
+  }
+}
+
+class StaticSpriteComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.sprite = new SpriteSheet(config.canvas, config.url, config.width, config.height);
+    this.Type = "StaticSpriteComponent";
   }
 }
 
@@ -44,6 +54,7 @@ class PositionComponent extends Component
 
 export {
   SpriteComponent,
+  StaticSpriteComponent,
   PositionComponent,
   TileComponent,
   TilesheetComponent
