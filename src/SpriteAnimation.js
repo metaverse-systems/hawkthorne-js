@@ -60,8 +60,6 @@ class SpriteAnimation
   }
 
   /*
-   *  spriteX: column in sprite sheet
-   *  spriteY: row in sprite sheet
    *  x, y: Canvas coordinates
    *  scale: Shrink or enlarge sprite
    */

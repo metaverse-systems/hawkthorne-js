@@ -1,8 +1,10 @@
 import React, { Component } from "react";
 import './App.css';
 import { Manager } from "@metaverse-systems/libecs-js";
-import { SpriteComponent, PositionComponent } from "./Components";
+import { SpriteComponent, PositionComponent, TileComponent, TilesheetComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
+import tmx2json from "./tmx2json";
+import Maps from "./maps.json";
 
 const ECS = new Manager();
 
@@ -22,7 +24,8 @@ class App extends Component {
     super(props);
 
     this.state = {
-      animation: "walk",
+      map: "studyroom",
+      animation: "dance",
       direction: "right",
       characterMap: {},
       characters: {},
@@ -42,7 +45,8 @@ class App extends Component {
     .then((response) => response.json())
     .then((data) => {
       this.setState({ characterMap: data }, () => {
-        this.initialize();
+        this.initializeMap();
+        this.initializeCharacters();
       });
     });
 
@@ -67,11 +71,22 @@ class App extends Component {
     }
   }
 
-  initialize = () => {
-    let canvas = document.getElementById('board');
+  initializeMap = () => {
+    let t = new tmx2json(baseURL + "/src/maps/" + this.state.map + ".tmx");
 
+    setTimeout(() => {
+      t.layers.forEach((layer) => {
+        this.buildLayer(layer, t.tilesets[0]);
+      });
+
+    }, 500);
+  }
+
+  initializeCharacters = () => {
+    let canvas = document.getElementById('board');
     let x = 0;
-    let y = 50;
+    let y = 400;
+
     characterNames.forEach((c) => {
       let spriteURL = characterImagesBaseURL + c + "/" + costume + ".png";
       let e = this.world.Entity();
@@ -79,15 +94,61 @@ class App extends Component {
       e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48, 
         characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
 
-      x += 100;
-      if(x > 900) {
+      x += 50;
+      if(x > 450) {
         x = 0;
-        y += 100;
+        y += 50;
       }
     });
 
     console.log(this.world.Export());
     this.world.Start(250);
+  }
+
+  buildLayer = (layer, tileset) => {
+    let tilesheet = baseURL + "/src/images/" + tileset.image.source;
+    let tileWidth = tileset.tilewidth;
+    let tileHeight = tileset.tileheight;
+    let tilesheetCols = tileset.image.width / tileWidth;
+
+    let e = this.world.Entity();
+    e.Component(new TilesheetComponent({ url: tilesheet, width: tileWidth, height: tileHeight }));
+
+    let maxCols = layer.width;
+    let maxRows = layer.height;
+
+    let index = 0;
+    for(let y = 0; y < maxRows; y++)
+    {
+      for(let x = 0; x < maxCols; x++)
+      {
+        let tileId = layer.tiles[index].id;
+        if(tileId === -1)
+        {
+            index++;
+            continue;
+        }
+
+        let tX = tileId % tilesheetCols;
+        let tY = (tileId - tX) / tilesheetCols;
+
+        let options = {};
+        if(layer.tiles[index].flipHorizontal === true) {
+          options.flipHorizontal = true;
+        }
+        if(layer.tiles[index].flipVertical === true) {
+          options.flipVertical = true;
+        }
+        if(layer.tiles[index].flipDiagonal === true) {
+          options.flipDiagonal = true;
+        }
+        e = this.world.Entity();
+        e.Component(new PositionComponent({ x: x, y: y }));
+        e.Component(new TileComponent({ tilesheet: tilesheet, width: tileWidth, height: tileHeight, x: tX, y: tY, options: options }));
+
+        index++;
+      }
+    }
   }
 
   changeAnimation = (e) => {
@@ -109,9 +170,28 @@ class App extends Component {
     });
   }
 
+  destroyTiles = () => {
+    Object.keys(this.world.Components["TileComponent"]).forEach((entity) => {
+      this.world.Entity(entity).destroy();
+    });
+    console.log(this.world.Export());
+  }
+
+  changeMap = (e) => {
+    this.destroyTiles();
+    this.setState({ map: e.target.value }, () => {
+      this.initializeMap();
+    });
+  }
+
   render() {
     return (
       <div className="App">
+        <select defaultValue={this.state.map} onChange={this.changeMap}>
+          {Maps.map((m, i) => {
+            return <option key={i}>{m}</option>
+          })}
+        </select>
         <select defaultValue={this.state.animation} onChange={this.changeAnimation}>
           {Object.keys(this.state.characterMap).map((a, i) => {
             return <option key={i}>{a}</option>

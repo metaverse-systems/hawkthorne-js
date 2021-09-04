@@ -10,6 +10,28 @@ class SpriteComponent extends Component
   }
 }
 
+class TilesheetComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.Type = "TilesheetComponent";
+  }
+}
+
+class TileComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.tilesheet = config.tilesheet;
+    this.width = config.width;
+    this.height = config.height;
+    this.x = config.x;
+    this.y = config.y;
+    this.options = config.options;
+    this.Type = "TileComponent";
+  }
+}
+
 class PositionComponent extends Component
 {
   constructor(config) {
@@ -22,5 +44,7 @@ class PositionComponent extends Component
 
 export {
   SpriteComponent,
-  PositionComponent
+  PositionComponent,
+  TileComponent,
+  TilesheetComponent
 };
