@@ -174,7 +174,6 @@ class App extends Component {
     Object.keys(this.world.Components["TileComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
-    console.log(this.world.Export());
   }
 
   changeMap = (e) => {
@@ -186,24 +185,29 @@ class App extends Component {
 
   render() {
     return (
-      <div className="App">
-        <canvas id="board" width="1000" height="600" />
+      <div>
+        <canvas id="board" width="1280" height="720" />
         <div style={ {float: 'right'} }>
           <label htmlFor="map">Choose map:</label>
+          <br />
           <select id="map" defaultValue={this.state.map} onChange={this.changeMap}>
             {Maps.map((m, i) => {
               return <option key={i}>{m}</option>
             })}
           </select>
           <br />
+          <br />
           <label htmlFor="animation">Choose animation:</label>
+          <br />
           <select id="animation" defaultValue={this.state.animation} onChange={this.changeAnimation}>
             {Object.keys(this.state.characterMap).map((a, i) => {
               return <option key={i}>{a}</option>
             })}
           </select>
           <br />
+          <br />
           <label htmlFor="direction">Choose direction:</label>
+          <br />
           <select id="direction" defaultValue={this.state.direction} onChange={this.changeDirection}>
             <option value="left">Left</option>
             <option value="right">Right</option>
