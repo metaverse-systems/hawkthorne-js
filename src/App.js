@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import './App.css';
 import ReactAudioPlayer from 'react-audio-player';
 import { Manager } from "@metaverse-systems/libecs-js";
-import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent, PolygonComponent } from "./Components";
+import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent, PolygonComponent, PolylineComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
 import tmx2json from "./tmx2json";
 import Maps from "./maps.json";
@@ -83,6 +83,13 @@ class App extends Component {
     let t = new tmx2json(baseURL + "/src/maps/" + this.state.map + ".tmx");
 
     setTimeout(() => {
+      let canvas = document.getElementById('board');
+      canvas.width = t.width * t.tilewidth;
+      canvas.height = t.height * t.tileheight;
+
+      this.state.drawingSystem.ConfigUpdate({ width: canvas.width, height: canvas.height });
+      console.log(t);
+
       if(t.properties.soundtrack !== undefined) {
         let track = t.properties.soundtrack;
         let url = "";
@@ -149,7 +156,7 @@ class App extends Component {
     }
 
     if(o.type === "door") {
-      if(o.name != "main") return;
+      if(o.name !== "main") return;
       this.setState({ levelStart: { x: o.x - 0, y: o.y - 0 } }, () => {
         this.initializePlayer();
       });
@@ -159,12 +166,23 @@ class App extends Component {
       this.buildPolygon(o);
       return;
     }
+
+    if(o.polyline !== undefined) {
+      this.buildPolyline(o);
+      return;
+    }
   }
 
   buildPolygon = (o) => {
     let e = this.world.Entity();
     e.Component(new PositionComponent({ x: o.x, y: o.y }));
     e.Component(new PolygonComponent({ points: o.polygon.points }));
+  }
+
+  buildPolyline = (o) => {
+    let e = this.world.Entity();
+    e.Component(new PositionComponent({ x: o.x, y: o.y }));
+    e.Component(new PolylineComponent({ points: o.polyline.points }));
   }
 
   buildSprite = (o) => {
@@ -253,6 +271,11 @@ class App extends Component {
     });
 
     Object.keys(this.world.Components["PolygonComponent"]).forEach((entity) => {
+      this.world.Entity(entity).destroy();
+    });
+
+    if(this.world.Components["PolylineComponent"] !== undefined)
+    Object.keys(this.world.Components["PolylineComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
   }

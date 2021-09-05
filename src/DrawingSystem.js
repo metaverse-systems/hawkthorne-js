@@ -80,13 +80,33 @@ class DrawingSystem extends System
       let poly = this.Container.Components["PolygonComponent"][entity];
       let pos = this.Container.Components["PositionComponent"][entity];
 
-      let start = poly.points[0];
+      ctx.strokeStyle = '#0f0';
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      poly.points.forEach((point) => {
+        let x = parseInt(point.x) + parseInt(pos.x);
+        let y = parseInt(point.y) + parseInt(pos.y);
+        ctx.lineTo(x, y);
+      });
+      ctx.lineTo(pos.x, pos.y);
+      ctx.closePath();
+      ctx.stroke();
+    });
+
+    if(this.Container.Components["PolylineComponent"] !== undefined)
+    Object.keys(this.Container.Components["PolylineComponent"]).forEach((entity) => {
+      let poly = this.Container.Components["PolylineComponent"][entity];
+      let pos = this.Container.Components["PositionComponent"][entity];
+
       ctx.strokeStyle = '#f00';
       ctx.beginPath();
-      ctx.moveTo(start.x + pos.x, start.y + pos.y);
+      ctx.moveTo(pos.x, pos.y);
       poly.points.forEach((point) => {
-        ctx.lineTo(point.x + pos.x, point.y + pos.y);
+        let x = parseInt(point.x) + parseInt(pos.x);
+        let y = parseInt(point.y) + parseInt(pos.y);
+        ctx.lineTo(x, y);
       });
+      ctx.lineTo(pos.x, pos.y);
       ctx.closePath();
       ctx.stroke();
     });

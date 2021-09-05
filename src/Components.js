@@ -61,11 +61,21 @@ class PolygonComponent extends Component
   }
 }
 
+class PolylineComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.points = config.points;
+    this.Type = "PolylineComponent";
+  }
+}
+
 export {
   SpriteComponent,
   StaticSpriteComponent,
   PositionComponent,
   TileComponent,
   TilesheetComponent,
-  PolygonComponent
+  PolygonComponent,
+  PolylineComponent
 };
