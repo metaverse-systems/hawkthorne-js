@@ -90,6 +90,9 @@ class TMX_Object
       let nodeName = xml.childNodes[i].nodeName;
       switch(nodeName)
       {
+        case "polyline":
+          this.polyline = new Polyline(xml.childNodes[i]);
+          break;
         case "polygon":
           this.polygon = new Polygon(xml.childNodes[i]);
           break;
@@ -124,6 +127,13 @@ class Polygon
       let [x, y] = point.split(",");
       this.points.push({ x: x - 0, y: y - 0 });
     });
+  }
+}
+
+class Polyline
+{
+  constructor(xml) {
+    this.points = new Polygon(xml).points;
   }
 }
 
