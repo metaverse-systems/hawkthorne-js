@@ -1,7 +1,8 @@
 import React, { Component } from "react";
 import './App.css';
+import ReactAudioPlayer from 'react-audio-player';
 import { Manager } from "@metaverse-systems/libecs-js";
-import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent } from "./Components";
+import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent, PolygonComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
 import tmx2json from "./tmx2json";
 import Maps from "./maps.json";
@@ -12,8 +13,11 @@ const baseURL = "https://raw.githubusercontent.com/hawkthorne/hawkthorne-journey
 const characterBaseURL = baseURL + "/src/characters/";
 const characterImagesBaseURL = baseURL + "/src/images/characters/";
 const characterMapURL = baseURL + "/src/character_map.json";
+const baseMusicURL = baseURL + "/src/audio/music/";
+
+
 const characterNames = [
-  "abed", "britta", "chang", "duncan", "garrett", "guzman", "leonard", "rich",     "troy", "vicedean",
+  "abed", "britta", "chang", "duncan", "garrett", "guzman", "leonard", "rich", "troy", "vicedean",
   "annie", "buddy", "dean", "fatneil", "gilbert", "jeff", "pierce", "shirley", "vaughn", "vicki"
 ];
 
@@ -24,6 +28,7 @@ class App extends Component {
     super(props);
 
     this.state = {
+      music: "",
       map: "studyroom",
       animation: "dance",
       direction: "right",
@@ -75,6 +80,21 @@ class App extends Component {
     let t = new tmx2json(baseURL + "/src/maps/" + this.state.map + ".tmx");
 
     setTimeout(() => {
+      if(t.properties.soundtrack !== undefined) {
+        let track = t.properties.soundtrack;
+        let url = "";
+        if(track.search("ogg") !== -1) {
+          url = baseURL + "/src/" + track;
+        } else {
+          url = baseMusicURL + t.properties.soundtrack + ".ogg";
+        }
+        this.setState({ music: url });
+        document.getElementById('rap').play();
+      } else {
+        document.getElementById('rap').pause();
+        this.setState({ music: "" });
+      }
+
       t.layers.forEach((layer) => {
         this.buildLayer(layer, t.tilesets[0]);
       });
@@ -112,8 +132,24 @@ class App extends Component {
   }
 
   buildObject = (o) => {
-    if(o.type !== "sprite") return;
+    if(o.type === "sprite") {
+      this.buildSprite(o);
+      return;
+    }
 
+    if(o.polygon !== undefined) {
+      this.buildPolygon(o);
+      return;
+    }
+  }
+
+  buildPolygon = (o) => {
+    let e = this.world.Entity();
+    e.Component(new PositionComponent({ x: o.x, y: o.y }));
+    e.Component(new PolygonComponent({ points: o.polygon.points }));
+  }
+
+  buildSprite = (o) => {
     let url = baseURL + "/src/" + o.properties.sheet;
 
     let e = this.world.Entity();
@@ -189,7 +225,7 @@ class App extends Component {
     });
   }
 
-  destroyTiles = () => {
+  destroyMap = () => {
     Object.keys(this.world.Components["TileComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
@@ -197,10 +233,14 @@ class App extends Component {
     Object.keys(this.world.Components["StaticSpriteComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
+
+    Object.keys(this.world.Components["PolygonComponent"]).forEach((entity) => {
+      this.world.Entity(entity).destroy();
+    });
   }
 
   changeMap = (e) => {
-    this.destroyTiles();
+    this.destroyMap();
     this.setState({ map: e.target.value }, () => {
       this.initializeMap();
     });
@@ -236,6 +276,10 @@ class App extends Component {
             <option value="right">Right</option>
           </select>
         </div>
+        <ReactAudioPlayer id="rap"
+          src={this.state.music}
+          loop
+        />
       </div>
     );
   }
