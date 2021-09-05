@@ -52,10 +52,20 @@ class PositionComponent extends Component
   }
 }
 
+class PolygonComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.points = config.points;
+    this.Type = "PolygonComponent";
+  }
+}
+
 export {
   SpriteComponent,
   StaticSpriteComponent,
   PositionComponent,
   TileComponent,
-  TilesheetComponent
+  TilesheetComponent,
+  PolygonComponent
 };

@@ -49,7 +49,6 @@ class DrawingSystem extends System
       let sprite = this.Container.Components["StaticSpriteComponent"][entity];
       let pos = this.Container.Components["PositionComponent"][entity];
 
-
       if(sprite.sprite) {
         sprite.sprite.draw(0, 0, pos.x, pos.y, sprite.options);
       }
@@ -60,10 +59,25 @@ class DrawingSystem extends System
       let sprite = this.Container.Components["SpriteComponent"][entity];
       let pos = this.Container.Components["PositionComponent"][entity];
 
-
       if(sprite.sprite) {
         sprite.sprite.animate(sprite.animation, sprite.direction, pos.x, pos.y, {});
       }
+    });
+
+    if(this.Container.Components["PolygonComponent"] !== undefined)
+    Object.keys(this.Container.Components["PolygonComponent"]).forEach((entity) => {
+      let poly = this.Container.Components["PolygonComponent"][entity];
+      let pos = this.Container.Components["PositionComponent"][entity];
+
+      let start = poly.points[0];
+      ctx.fillStyle = '#f00';
+      ctx.beginPath();
+      ctx.moveTo(start.x + pos.x, start.y + pos.y);
+      poly.points.forEach((point) => {
+        ctx.lineTo(point.x + pos.x, point.y + pos.y);
+      });
+      ctx.closePath();
+      ctx.stroke();
     });
   }
 }
