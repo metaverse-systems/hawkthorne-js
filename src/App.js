@@ -15,7 +15,6 @@ const characterImagesBaseURL = baseURL + "/src/images/characters/";
 const characterMapURL = baseURL + "/src/character_map.json";
 const baseMusicURL = baseURL + "/src/audio/music/";
 
-
 const characterNames = [
   "abed", "britta", "chang", "duncan", "garrett", "guzman", "leonard", "rich", "troy", "vicedean",
   "annie", "buddy", "dean", "fatneil", "gilbert", "jeff", "pierce", "shirley", "vaughn", "vicki"
@@ -31,18 +30,22 @@ class App extends Component {
       music: "",
       volume: 0.25,
       map: "studyroom",
-      animation: "dance",
+      animation: "idle",
       direction: "right",
       characterMap: {},
       characters: {},
       drawingSystem: new DrawingSystem({
         width: window.innerWidth,
         height: window.innerHeight
-      })
+      }),
+      levelStart: { x: 0, y: 0 },
+      playerCharacter: "annie",
+      playerCostume: "santa"
     };
 
     this.world = ECS.Container();
     this.world.System(this.state.drawingSystem);
+    this.world.Start(250);
   }
 
   componentDidMount = () => {
@@ -52,7 +55,6 @@ class App extends Component {
     .then((data) => {
       this.setState({ characterMap: data }, () => {
         this.initializeMap();
-        this.initializeCharacters();
       });
     });
 
@@ -106,14 +108,24 @@ class App extends Component {
         });
       });
 
-      console.log(this.world.Export());
+      console.log(this.world);
     }, 500);
+  }
+
+  initializePlayer = () => {
+    let canvas = document.getElementById('board');
+    let spriteURL = characterImagesBaseURL + this.state.playerCharacter + "/" + this.state.playerCostume + ".png";
+
+    let e = this.world.Entity("player");
+    e.Component(new PositionComponent(this.state.levelStart));
+    e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48,
+      characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
   }
 
   initializeCharacters = () => {
     let canvas = document.getElementById('board');
-    let x = 0;
-    let y = 400;
+    let x = 50;
+    let y = 200;
 
     characterNames.forEach((c) => {
       let spriteURL = characterImagesBaseURL + c + "/" + costume + ".png";
@@ -128,14 +140,19 @@ class App extends Component {
         y += 50;
       }
     });
-
-    this.world.Start(250);
   }
 
   buildObject = (o) => {
     if(o.type === "sprite") {
       this.buildSprite(o);
       return;
+    }
+
+    if(o.type === "door") {
+      if(o.name != "main") return;
+      this.setState({ levelStart: { x: o.x - 0, y: o.y - 0 } }, () => {
+        this.initializePlayer();
+      });
     }
 
     if(o.polygon !== undefined) {

@@ -14,6 +14,15 @@ class DrawingSystem extends System
     this.tilesheets = {};
   }
 
+  Init = () => {
+    this.Container.Components["TilesheetComponent"] = {};
+    this.Container.Components["TileComponent"] = {};
+    this.Container.Components["PositionComponent"] = {};
+    this.Container.Components["SpriteComponent"] = {};
+    this.Container.Components["StaticSpriteComponent"] = {};
+    this.Container.Components["PolygonComponent"] = {};
+  }
+
   ConfigUpdate = (config) => {
     Object.keys(config).forEach((key) => {
       this.config[key] = config[key];
@@ -33,6 +42,8 @@ class DrawingSystem extends System
       if(this.tilesheets[tilesheet.url] !== undefined) return;
       this.tilesheets[tilesheet.url] = new SpriteSheet(this.config.board, tilesheet.url, 
                                                        tilesheet.width, tilesheet.height); 
+
+      this.Container.Entity(entity).destroy();
     });
 
     if(this.Container.Components["TileComponent"] !== undefined)
@@ -70,7 +81,7 @@ class DrawingSystem extends System
       let pos = this.Container.Components["PositionComponent"][entity];
 
       let start = poly.points[0];
-      ctx.fillStyle = '#f00';
+      ctx.strokeStyle = '#f00';
       ctx.beginPath();
       ctx.moveTo(start.x + pos.x, start.y + pos.y);
       poly.points.forEach((point) => {
