@@ -26,7 +26,7 @@ class tmx2json
         switch(nodeName)
         {
           case "properties":
-            this.properties = new Properties(tmx_map.childNodes[i]);
+            this.properties = new ObjectProperties(tmx_map.childNodes[i]);
             break;
           case "tileset":
             this.tilesets.push(new Tileset(tmx_map.childNodes[i]));
@@ -90,6 +90,9 @@ class TMX_Object
       let nodeName = xml.childNodes[i].nodeName;
       switch(nodeName)
       {
+        case "polygon":
+          this.polygon = new Polygon(xml.childNodes[i]);
+          break;
         case "properties":
           this.properties = new ObjectProperties(xml.childNodes[i]);
           break;
@@ -100,6 +103,27 @@ class TMX_Object
           break;
       }
     }
+  }
+}
+
+class Polygon
+{
+  constructor(xml) {
+    this.points = [];
+    let temp = {};
+    for(let i = 0; i < xml.attributes.length; i++) {
+      let name = xml.attributes[i].name;
+      let value = xml.attributes[i].textContent;
+      temp[name] = value;
+    }
+
+    if(temp["points"] === undefined) return;
+
+    let points = temp["points"].split(" ");
+    points.forEach((point) => {
+      let [x, y] = point.split(",");
+      this.points.push({ x: x - 0, y: y - 0 });
+    });
   }
 }
 
