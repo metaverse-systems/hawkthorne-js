@@ -275,11 +275,14 @@ class App extends Component {
             <option value="left">Left</option>
             <option value="right">Right</option>
           </select>
+          <br />
+          <br />
+          <ReactAudioPlayer id="rap"
+            src={this.state.music}
+            loop={true}
+            controls={true}
+          />
         </div>
-        <ReactAudioPlayer id="rap"
-          src={this.state.music}
-          loop
-        />
       </div>
     );
   }
