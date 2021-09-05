@@ -29,6 +29,7 @@ class App extends Component {
 
     this.state = {
       music: "",
+      volume: 0.25,
       map: "studyroom",
       animation: "dance",
       direction: "right",
@@ -246,6 +247,10 @@ class App extends Component {
     });
   }
 
+  volume = (e) => {
+    this.setState({ volume: e.target.volume });
+  }
+
   render() {
     return (
       <div>
@@ -281,6 +286,8 @@ class App extends Component {
             src={this.state.music}
             loop={true}
             controls={true}
+            onVolumeChanged={this.volume}
+            volume={this.state.volume}
           />
         </div>
       </div>
