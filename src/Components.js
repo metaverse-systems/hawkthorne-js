@@ -70,6 +70,17 @@ class PolylineComponent extends Component
   }
 }
 
+class RectangleComponent extends Component
+{
+  constructor(config) {
+    super(config);
+    this.width = config.width;
+    this.height = config.height;
+    this.color = config.color;
+    this.Type = "RectangleComponent";
+  }
+}
+
 export {
   SpriteComponent,
   StaticSpriteComponent,
@@ -77,5 +88,6 @@ export {
   TileComponent,
   TilesheetComponent,
   PolygonComponent,
-  PolylineComponent
+  PolylineComponent,
+  RectangleComponent
 };

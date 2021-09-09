@@ -2,7 +2,9 @@ import React, { Component } from "react";
 import './App.css';
 import ReactAudioPlayer from 'react-audio-player';
 import { Manager } from "@metaverse-systems/libecs-js";
-import { SpriteComponent, StaticSpriteComponent, PositionComponent, TileComponent, TilesheetComponent, PolygonComponent, PolylineComponent } from "./Components";
+import { RectangleComponent, SpriteComponent, StaticSpriteComponent, 
+         PositionComponent, TileComponent, TilesheetComponent, 
+         PolygonComponent, PolylineComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
 import tmx2json from "./tmx2json";
 import Maps from "./maps.json";
@@ -19,8 +21,6 @@ const characterNames = [
   "abed", "britta", "chang", "duncan", "garrett", "guzman", "leonard", "rich", "troy", "vicedean",
   "annie", "buddy", "dean", "fatneil", "gilbert", "jeff", "pierce", "shirley", "vaughn", "vicki"
 ];
-
-const costume = "base";
 
 class App extends Component {
   constructor(props) {
@@ -90,6 +90,13 @@ class App extends Component {
       this.state.drawingSystem.ConfigUpdate({ width: canvas.width, height: canvas.height });
       console.log(t);
 
+      if(t.properties.red !== undefined) {
+        let e = this.world.Entity();
+        e.Component(new PositionComponent({ x: 0, y: 0 }));
+        let color = "#" + parseInt(t.properties.red).toString(16) + parseInt(t.properties.green).toString(16) + parseInt(t.properties.blue).toString(16);
+        e.Component(new RectangleComponent({ width: canvas.width, height: canvas.height, color: color }));
+      }
+
       if(t.properties.soundtrack !== undefined) {
         let track = t.properties.soundtrack;
         let url = "";
@@ -101,8 +108,9 @@ class App extends Component {
         this.setState({ music: url });
         document.getElementById('rap').play();
       } else {
-        document.getElementById('rap').pause();
-        this.setState({ music: "" });
+        let url = baseMusicURL + "level.ogg";
+        this.setState({ music: url });
+        document.getElementById('rap').play();
       }
 
       t.layers.forEach((layer) => {
@@ -135,7 +143,7 @@ class App extends Component {
     let y = 200;
 
     characterNames.forEach((c) => {
-      let spriteURL = characterImagesBaseURL + c + "/" + costume + ".png";
+      let spriteURL = characterImagesBaseURL + c + "/base.png";
       let e = this.world.Entity();
       e.Component(new PositionComponent({ x: x, y: y }));
       e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48, 
@@ -276,6 +284,11 @@ class App extends Component {
 
     if(this.world.Components["PolylineComponent"] !== undefined)
     Object.keys(this.world.Components["PolylineComponent"]).forEach((entity) => {
+      this.world.Entity(entity).destroy();
+    });
+
+    if(this.world.Components["RectangleComponent"] !== undefined)
+    Object.keys(this.world.Components["RectangleComponent"]).forEach((entity) => {
       this.world.Entity(entity).destroy();
     });
   }

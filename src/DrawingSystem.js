@@ -21,6 +21,7 @@ class DrawingSystem extends System
     this.Container.Components["SpriteComponent"] = {};
     this.Container.Components["StaticSpriteComponent"] = {};
     this.Container.Components["PolygonComponent"] = {};
+    this.Container.Components["RectangleComponent"] = {};
   }
 
   ConfigUpdate = (config) => {
@@ -34,6 +35,16 @@ class DrawingSystem extends System
     let ctx = this.config.board.getContext("2d");
 
     ctx.clearRect(0, 0, this.config.board.width, this.config.board.height);
+
+    if(this.Container.Components["RectangleComponent"] !== undefined) 
+    Object.keys(this.Container.Components["RectangleComponent"]).forEach((entity) => {
+      let rect = this.Container.Components["RectangleComponent"][entity];
+      let pos = this.Container.Components["PositionComponent"][entity];
+      ctx.beginPath();
+      ctx.fillStyle = rect.color;
+      ctx.rect(pos.x, pos.y, rect.width, rect.height);
+      ctx.fill();
+    });
 
     if(this.Container.Components["TilesheetComponent"] !== undefined)
     Object.keys(this.Container.Components["TilesheetComponent"]).forEach((entity) => {
