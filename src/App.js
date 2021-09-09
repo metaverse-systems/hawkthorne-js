@@ -83,35 +83,31 @@ class App extends Component {
     let t = new tmx2json(baseURL + "/src/maps/" + this.state.map + ".tmx");
 
     setTimeout(() => {
-      let canvas = document.getElementById('board');
-      canvas.width = t.width * t.tilewidth;
-      canvas.height = t.height * t.tileheight;
-
-      this.state.drawingSystem.ConfigUpdate({ width: canvas.width, height: canvas.height });
       console.log(t);
 
       if(t.properties.red !== undefined) {
         let e = this.world.Entity();
         e.Component(new PositionComponent({ x: 0, y: 0 }));
+
+        let width = t.width * t.tilewidth;
+        let height = t.height * t.tileheight;
         let color = "#" + parseInt(t.properties.red).toString(16) + parseInt(t.properties.green).toString(16) + parseInt(t.properties.blue).toString(16);
-        e.Component(new RectangleComponent({ width: canvas.width, height: canvas.height, color: color }));
+        e.Component(new RectangleComponent({ width: width, height: height, color: color }));
       }
 
+      let soundtrackURL = baseMusicURL + "level.ogg";
       if(t.properties.soundtrack !== undefined) {
         let track = t.properties.soundtrack;
-        let url = "";
         if(track.search("ogg") !== -1) {
-          url = baseURL + "/src/" + track;
+          soundtrackURL = baseURL + "/src/" + track;
         } else {
-          url = baseMusicURL + t.properties.soundtrack + ".ogg";
+          soundtrackURL = baseMusicURL + t.properties.soundtrack + ".ogg";
         }
-        this.setState({ music: url });
-        document.getElementById('rap').play();
-      } else {
-        let url = baseMusicURL + "level.ogg";
-        this.setState({ music: url });
-        document.getElementById('rap').play();
       }
+
+      this.setState({ music: soundtrackURL }, () => {
+        document.getElementById('rap').play();
+      });
 
       t.layers.forEach((layer) => {
         this.buildLayer(layer, t.tilesets[0]);
@@ -135,26 +131,6 @@ class App extends Component {
     e.Component(new PositionComponent(this.state.levelStart));
     e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48,
       characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
-  }
-
-  initializeCharacters = () => {
-    let canvas = document.getElementById('board');
-    let x = 50;
-    let y = 200;
-
-    characterNames.forEach((c) => {
-      let spriteURL = characterImagesBaseURL + c + "/base.png";
-      let e = this.world.Entity();
-      e.Component(new PositionComponent({ x: x, y: y }));
-      e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48, 
-        characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
-
-      x += 50;
-      if(x > 450) {
-        x = 0;
-        y += 50;
-      }
-    });
   }
 
   buildObject = (o) => {
