@@ -12,6 +12,7 @@ class DrawingSystem extends System
     super(config);
     this.Handle = "DrawingSystem";
     this.tilesheets = {};
+    this.config.camera = { x: 0, y: 0 };
   }
 
   Init = () => {
@@ -28,6 +29,30 @@ class DrawingSystem extends System
     Object.keys(config).forEach((key) => {
       this.config[key] = config[key];
     });
+    if(config.width) this.config.board.width = this.config.width;
+    if(config.height) this.config.board.height = this.config.height;
+  }
+
+  ShouldDraw = (x, y, width, height) => {
+    let viewport = { left: this.config.camera.x,
+                     top: this.config.camera.y,
+                     right: (parseInt(this.config.camera.x) + parseInt(this.config.board.width)),
+                     bottom: (parseInt(this.config.camera.y) + parseInt(this.config.board.height)) };
+
+    let o = { left: x,
+              top: y,
+              right: (parseInt(x) + parseInt(width)),
+              bottom: (parseInt(y) + parseInt(height)) };
+
+    if(o.right < viewport.left) {
+      return false;
+    }
+
+    if(o.left > viewport.right) {
+      return false;
+    }
+
+    return true;
   }
 
   Update = () => {
@@ -42,7 +67,7 @@ class DrawingSystem extends System
       let pos = this.Container.Components["PositionComponent"][entity];
       ctx.beginPath();
       ctx.fillStyle = rect.color;
-      ctx.rect(pos.x, pos.y, rect.width, rect.height);
+      ctx.rect(pos.x - this.config.camera.x, pos.y - this.config.camera.y, rect.width, rect.height);
       ctx.fill();
     });
 
@@ -63,7 +88,9 @@ class DrawingSystem extends System
       let pos = this.Container.Components["PositionComponent"][entity];
       let sheet = this.tilesheets[tile.tilesheet];
 
-      sheet.draw(tile.x, tile.y, pos.x * tile.width, pos.y * tile.height, tile.options);
+      if(this.ShouldDraw(pos.x * tile.width, pos.y * tile.height, tile.width, tile.height)) {
+        sheet.draw(tile.x, tile.y, (pos.x * tile.width) - this.config.camera.x, (pos.y * tile.height) - this.config.camera.y, tile.options);
+      }
     });
 
     if(this.Container.Components["StaticSpriteComponent"] !== undefined)
@@ -71,8 +98,8 @@ class DrawingSystem extends System
       let sprite = this.Container.Components["StaticSpriteComponent"][entity];
       let pos = this.Container.Components["PositionComponent"][entity];
 
-      if(sprite.sprite) {
-        sprite.sprite.draw(0, 0, pos.x, pos.y, sprite.options);
+      if(this.ShouldDraw(pos.x, pos.y, sprite.width, sprite.height)) {
+        sprite.sprite.draw(0, 0, pos.x - this.config.camera.x, pos.y - this.config.camera.y, sprite.options);
       }
     });
 
@@ -81,8 +108,8 @@ class DrawingSystem extends System
       let sprite = this.Container.Components["SpriteComponent"][entity];
       let pos = this.Container.Components["PositionComponent"][entity];
 
-      if(sprite.sprite) {
-        sprite.sprite.animate(sprite.animation, sprite.direction, pos.x, pos.y, {});
+      if(this.ShouldDraw(pos.x, pos.y, sprite.width, sprite.height)) {
+        sprite.sprite.animate(sprite.animation, sprite.direction, pos.x - this.config.camera.x, pos.y - this.config.camera.y, {});
       }
     });
 
@@ -93,13 +120,13 @@ class DrawingSystem extends System
 
       ctx.strokeStyle = '#0f0';
       ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
+      ctx.moveTo(pos.x - this.config.camera.x, pos.y - this.config.camera.y);
       poly.points.forEach((point) => {
-        let x = parseInt(point.x) + parseInt(pos.x);
-        let y = parseInt(point.y) + parseInt(pos.y);
+        let x = parseInt(point.x) + parseInt(pos.x) - this.config.camera.x;
+        let y = parseInt(point.y) + parseInt(pos.y) - this.config.camera.y;
         ctx.lineTo(x, y);
       });
-      ctx.lineTo(pos.x, pos.y);
+      ctx.lineTo(pos.x - this.config.camera.x, pos.y - this.config.camera.y);
       ctx.closePath();
       ctx.stroke();
     });
@@ -111,13 +138,13 @@ class DrawingSystem extends System
 
       ctx.strokeStyle = '#f00';
       ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
+      ctx.moveTo(pos.x - this.config.camera.x, pos.y - this.config.camera.y);
       poly.points.forEach((point) => {
-        let x = parseInt(point.x) + parseInt(pos.x);
-        let y = parseInt(point.y) + parseInt(pos.y);
+        let x = parseInt(point.x) + parseInt(pos.x) - this.config.camera.x;
+        let y = parseInt(point.y) + parseInt(pos.y) - this.config.camera.y;
         ctx.lineTo(x, y);
       });
-      ctx.lineTo(pos.x, pos.y);
+      ctx.lineTo(pos.x - this.config.camera.x, pos.y - this.config.camera.y);
       ctx.closePath();
       ctx.stroke();
     });

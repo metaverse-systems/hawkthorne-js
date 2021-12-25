@@ -40,15 +40,18 @@ class App extends Component {
       }),
       levelStart: { x: 0, y: 0 },
       playerCharacter: "annie",
-      playerCostume: "santa"
+      playerCostume: "santa",
+      camera: { x: 0, y: 0 }
     };
 
     this.world = ECS.Container();
     this.world.System(this.state.drawingSystem);
-    this.world.Start(250);
+    this.world.Start(1000 / 15);
   }
 
   componentDidMount = () => {
+    document.addEventListener('keydown', this.keyDown);
+
     this.handleResize();
     fetch(characterMapURL)
     .then((response) => response.json())
@@ -68,6 +71,31 @@ class App extends Component {
         this.setState({ characters: characters });
       });
     });
+  }
+
+  moveCamera = (x, y) => {
+    this.setState({ camera: { x: x, y: y } }, () => {
+      this.state.drawingSystem.ConfigUpdate({ camera: this.state.camera });
+    });
+  }
+
+  centerCamera = () => {
+    const pos = this.world.Components["PositionComponent"]["player"];
+    const width = this.state.drawingSystem.config.width;
+
+    const rightTrigger = this.state.camera.x + (width * .75);
+    if(pos.x > rightTrigger) {
+      this.moveCamera(this.state.camera.x + 5, this.state.camera.y);
+      return;
+    }
+
+    const leftTrigger = this.state.camera.x + (width *.25);
+    if(pos.x < leftTrigger) {
+      let newX = this.state.camera.x - 5;
+      if(newX < 0) newX = 0;
+      this.moveCamera(newX, this.state.camera.y);
+      return;
+    }
   }
 
   handleResize = () => {
@@ -106,7 +134,7 @@ class App extends Component {
       }
 
       this.setState({ music: soundtrackURL }, () => {
-        document.getElementById('rap').play();
+//        document.getElementById('rap').play();
       });
 
       t.layers.forEach((layer) => {
@@ -123,12 +151,12 @@ class App extends Component {
     }, 500);
   }
 
-  initializePlayer = () => {
+  initializePlayer = (pos) => {
     let canvas = document.getElementById('board');
     let spriteURL = characterImagesBaseURL + this.state.playerCharacter + "/" + this.state.playerCostume + ".png";
 
     let e = this.world.Entity("player");
-    e.Component(new PositionComponent(this.state.levelStart));
+    if(pos !== undefined) e.Component(new PositionComponent(pos));
     e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48,
       characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
   }
@@ -142,7 +170,7 @@ class App extends Component {
     if(o.type === "door") {
       if(o.name !== "main") return;
       this.setState({ levelStart: { x: o.x - 0, y: o.y - 0 } }, () => {
-        this.initializePlayer();
+        this.initializePlayer(this.state.levelStart);
       });
     }
 
@@ -278,6 +306,32 @@ class App extends Component {
 
   volume = (e) => {
     this.setState({ volume: e.target.volume });
+  }
+
+  keyDown = (e) => {
+    let newPos = { x: 0, y: 0 };
+    switch(e.key) {
+      case 'd':
+      case 'D':
+        newPos.x = 5;
+        this.setState({ direction: "right" });
+        break;
+      case 'a':
+      case 'A':
+        newPos.x = -5;
+        this.setState({ direction: "left" });
+        break;
+      default:
+        break;
+    }
+
+    if(newPos.x || newPos.y) {
+      let pos = this.world.Components["PositionComponent"]["player"];
+      newPos.x += pos.x;
+      newPos.y += pos.y;
+      this.initializePlayer(newPos);
+      this.centerCamera();
+    }
   }
 
   render() {
