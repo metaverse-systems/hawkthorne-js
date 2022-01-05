@@ -1,12 +1,12 @@
 import React, { Component } from "react";
-import './App.css';
-import ReactAudioPlayer from 'react-audio-player';
+import "./App.css";
+import ReactAudioPlayer from "react-audio-player";
 import { Manager } from "@metaverse-systems/libecs-js";
 import { RectangleComponent, SpriteComponent, StaticSpriteComponent, 
          PositionComponent, TileComponent, TilesheetComponent, 
          PolygonComponent, PolylineComponent } from "./Components";
 import DrawingSystem from "./DrawingSystem";
-import tmx2json from "./tmx2json";
+import tmx from "tiled-tmx-parser";
 import Maps from "./maps.json";
 
 const ECS = new Manager();
@@ -49,6 +49,10 @@ class App extends Component {
     this.world.Start(1000 / 15);
   }
 
+  componentWillUnmount = () => {
+    document.removeEventListener('keydown', this.keyDown);
+  }
+
   componentDidMount = () => {
     document.addEventListener('keydown', this.keyDown);
 
@@ -71,6 +75,15 @@ class App extends Component {
         this.setState({ characters: characters });
       });
     });
+  }
+
+  handleResize = () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if(this.state.drawingSystem !== null) {
+      this.state.drawingSystem.ConfigUpdate({ height: height, width: width, board: document.getElementById('board') });
+    }
   }
 
   moveCamera = (x, y) => {
@@ -98,57 +111,60 @@ class App extends Component {
     }
   }
 
-  handleResize = () => {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+  setBackgroundColor = (map) => {
+    const e = this.world.Entity();
+    e.Component(new PositionComponent({ x: 0, y: 0 }));
 
-    if(this.state.drawingSystem !== null) {
-      this.state.drawingSystem.ConfigUpdate({ height: height, width: width, board: document.getElementById('board') });
+    const backgroundWidth = map.width * map.tileWidth;
+    const backgroundHeight = map.height * map.tileHeight;
+    const color = "#" + parseInt(map.properties.red).toString(16)
+                      + parseInt(map.properties.green).toString(16)
+                      + parseInt(map.properties.blue).toString(16);
+
+    e.Component(new RectangleComponent({ width: backgroundWidth, height: backgroundHeight, color: color }));
+  }
+
+  setMusic = (track) => {
+    if(track === undefined) {
+      track = "level";
     }
+
+    let soundtrackURL = "";
+    if(track.search("ogg") !== -1) {
+      soundtrackURL = baseURL + "/src/" + track;
+    } else {
+      soundtrackURL = baseMusicURL + track + ".ogg";
+    }
+
+    this.setState({ music: soundtrackURL }, () => {
+      document.getElementById('rap').play();
+    });
   }
 
   initializeMap = () => {
-    let t = new tmx2json(baseURL + "/src/maps/" + this.state.map + ".tmx");
-
-    setTimeout(() => {
-      console.log(t);
-
-      if(t.properties.red !== undefined) {
-        let e = this.world.Entity();
-        e.Component(new PositionComponent({ x: 0, y: 0 }));
-
-        let width = t.width * t.tilewidth;
-        let height = t.height * t.tileheight;
-        let color = "#" + parseInt(t.properties.red).toString(16) + parseInt(t.properties.green).toString(16) + parseInt(t.properties.blue).toString(16);
-        e.Component(new RectangleComponent({ width: width, height: height, color: color }));
-      }
-
-      let soundtrackURL = baseMusicURL + "level.ogg";
-      if(t.properties.soundtrack !== undefined) {
-        let track = t.properties.soundtrack;
-        if(track.search("ogg") !== -1) {
-          soundtrackURL = baseURL + "/src/" + track;
-        } else {
-          soundtrackURL = baseMusicURL + t.properties.soundtrack + ".ogg";
-        }
-      }
-
-      this.setState({ music: soundtrackURL }, () => {
-//        document.getElementById('rap').play();
-      });
-
-      t.layers.forEach((layer) => {
-        this.buildLayer(layer, t.tilesets[0]);
-      });
-
-      t.objectgroups.forEach((group) => {
-        group.objects.forEach((o) => {
-          this.buildObject(o);
+    const mapURL = baseURL + "/src/maps/" + this.state.map + ".tmx";
+    fetch(mapURL)
+    .then((response) => response.text())
+    .then((data) => {
+      tmx.parse(data, "", (err, map) => {
+        if(map.properties.red !== undefined) this.setBackgroundColor(map);
+        this.setMusic(map.properties.soundtrack);
+        map.layers.forEach((layer) => {
+          switch(layer.type)
+          {
+            case "tile":
+              this.buildTileLayer(layer);
+              break;
+            case "object":
+              this.buildObjectLayer(layer);
+              break;
+            default:
+              console.log("initializeMap(): Unknown layer type: " + layer.type);
+              break;
+          }
         });
       });
-
-      console.log(this.world);
-    }, 500);
+    });
   }
 
   initializePlayer = (pos) => {
@@ -157,8 +173,15 @@ class App extends Component {
 
     let e = this.world.Entity("player");
     if(pos !== undefined) e.Component(new PositionComponent(pos));
+    else e.Component(new PositionComponent(this.state.levelStart));
     e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48,
       characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
+  }
+
+  buildObjectLayer = (layer) => {
+    layer.objects.forEach((o) => {
+      this.buildObject(o);
+    });
   }
 
   buildObject = (o) => {
@@ -170,62 +193,67 @@ class App extends Component {
     if(o.type === "door") {
       if(o.name !== "main") return;
       this.setState({ levelStart: { x: o.x - 0, y: o.y - 0 } }, () => {
-        this.initializePlayer(this.state.levelStart);
+        this.initializePlayer();
       });
     }
 
-    if(o.polygon !== undefined) {
+    if(o.polygon !== null) {
       this.buildPolygon(o);
       return;
     }
 
-    if(o.polyline !== undefined) {
+    if(o.polyline !== null) {
       this.buildPolyline(o);
       return;
     }
   }
 
   buildPolygon = (o) => {
-    let e = this.world.Entity();
+    const e = this.world.Entity();
     e.Component(new PositionComponent({ x: o.x, y: o.y }));
-    e.Component(new PolygonComponent({ points: o.polygon.points }));
+    e.Component(new PolygonComponent({ points: o.polygon }));
   }
 
   buildPolyline = (o) => {
-    let e = this.world.Entity();
+    const e = this.world.Entity();
     e.Component(new PositionComponent({ x: o.x, y: o.y }));
-    e.Component(new PolylineComponent({ points: o.polyline.points }));
+    e.Component(new PolylineComponent({ points: o.polyline }));
   }
 
   buildSprite = (o) => {
-    let url = baseURL + "/src/" + o.properties.sheet;
+    const url = baseURL + "/src/" + o.properties.sheet;
 
-    let e = this.world.Entity();
+    const e = this.world.Entity();
     e.Component(new PositionComponent({ x: o.x, y: o.y }));
 
-    let options = { flipHorizontal: o.properties.flip === "true" ? true : false };
+    const options = { flipHorizontal: o.properties.flip === "true" ? true : false };
     e.Component(new StaticSpriteComponent({ canvas: document.getElementById('board'), url: url, width: o.properties.width,
                                             height: o.properties.height, x: o.x, y: o.y, options: options }));
   }
 
-  buildLayer = (layer, tileset) => {
-    let tilesheet = baseURL + "/src/images/" + tileset.image.source;
-    let tileWidth = tileset.tilewidth;
-    let tileHeight = tileset.tileheight;
-    let tilesheetCols = tileset.image.width / tileWidth;
+  buildTileLayer = (layer) => {
+    const tileSet = layer.map.tileSets[0];
+    const tilesheetURL = baseURL + "/src/images/" + tileSet.image.source;
+    const tilesheetCols = tileSet.image.width / tileSet.tileWidth;
 
     let e = this.world.Entity();
-    e.Component(new TilesheetComponent({ url: tilesheet, width: tileWidth, height: tileHeight }));
+    e.Component(new TilesheetComponent({ url: tilesheetURL, width: tileSet.tileWidth, height: tileSet.tileHeight }));
 
-    let maxCols = layer.width;
-    let maxRows = layer.height;
+    let maxCols = layer.map.width;
+    let maxRows = layer.map.height;
 
     let index = 0;
     for(let y = 0; y < maxRows; y++)
     {
       for(let x = 0; x < maxCols; x++)
       {
+        if(layer.tiles[index] === undefined) {
+          index++;
+          continue;
+        }
+
         let tileId = layer.tiles[index].id;
+
         if(tileId === -1)
         {
             index++;
@@ -236,18 +264,18 @@ class App extends Component {
         let tY = (tileId - tX) / tilesheetCols;
 
         let options = {};
-        if(layer.tiles[index].flipHorizontal === true) {
+        if(layer.horizontalFlips[index] === true) {
           options.flipHorizontal = true;
         }
-        if(layer.tiles[index].flipVertical === true) {
+        if(layer.verticalFlips[index] === true) {
           options.flipVertical = true;
         }
-        if(layer.tiles[index].flipDiagonal === true) {
+        if(layer.diagonalFlips[index] === true) {
           options.flipDiagonal = true;
         }
         e = this.world.Entity();
         e.Component(new PositionComponent({ x: x, y: y }));
-        e.Component(new TileComponent({ tilesheet: tilesheet, width: tileWidth, height: tileHeight, x: tX, y: tY, options: options }));
+        e.Component(new TileComponent({ tilesheet: tilesheetURL, width: tileSet.tileWidth, height: tileSet.tileHeight, x: tX, y: tY, options: options }));
 
         index++;
       }
@@ -351,9 +379,7 @@ class App extends Component {
           <label htmlFor="animation">Choose animation:</label>
           <br />
           <select id="animation" defaultValue={this.state.animation} onChange={this.changeAnimation}>
-            {Object.keys(this.state.characterMap).map((a, i) => {
-              return <option key={i}>{a}</option>
-            })}
+            {Object.keys(this.state.characterMap).map((a, i) => <option key={i}>{a}</option>)}
           </select>
           <br />
           <br />
