@@ -40,15 +40,22 @@ class App extends Component {
       }),
       levelStart: { x: 0, y: 0 },
       playerCharacter: "annie",
-      playerCostume: "santa"
+      playerCostume: "santa",
+      camera: { x: 0, y: 0 }
     };
 
     this.world = ECS.Container();
     this.world.System(this.state.drawingSystem);
-    this.world.Start(250);
+    this.world.Start(1000 / 15);
+  }
+
+  componentWillUnmount = () => {
+    document.removeEventListener('keydown', this.keyDown);
   }
 
   componentDidMount = () => {
+    document.addEventListener('keydown', this.keyDown);
+
     this.handleResize();
     fetch(characterMapURL)
     .then((response) => response.json())
@@ -135,12 +142,94 @@ class App extends Component {
     });
   }
 
-  initializePlayer = () => {
+  moveCamera = (x, y) => {
+    this.setState({ camera: { x: x, y: y } }, () => {
+      this.state.drawingSystem.ConfigUpdate({ camera: this.state.camera });
+    });
+  }
+
+  centerCamera = () => {
+    const pos = this.world.Components["PositionComponent"]["player"];
+    const width = this.state.drawingSystem.config.width;
+
+    const rightTrigger = this.state.camera.x + (width * .75);
+    if(pos.x > rightTrigger) {
+      this.moveCamera(this.state.camera.x + 5, this.state.camera.y);
+      return;
+    }
+
+    const leftTrigger = this.state.camera.x + (width *.25);
+    if(pos.x < leftTrigger) {
+      let newX = this.state.camera.x - 5;
+      if(newX < 0) newX = 0;
+      this.moveCamera(newX, this.state.camera.y);
+      return;
+    }
+  }
+
+  setBackgroundColor = (map) => {
+    const e = this.world.Entity();
+    e.Component(new PositionComponent({ x: 0, y: 0 }));
+
+    const backgroundWidth = map.width * map.tileWidth;
+    const backgroundHeight = map.height * map.tileHeight;
+    const color = "#" + parseInt(map.properties.red).toString(16)
+                      + parseInt(map.properties.green).toString(16)
+                      + parseInt(map.properties.blue).toString(16);
+
+    e.Component(new RectangleComponent({ width: backgroundWidth, height: backgroundHeight, color: color }));
+  }
+
+  setMusic = (track) => {
+    if(track === undefined) {
+      track = "level";
+    }
+
+    let soundtrackURL = "";
+    if(track.search("ogg") !== -1) {
+      soundtrackURL = baseURL + "/src/" + track;
+    } else {
+      soundtrackURL = baseMusicURL + track + ".ogg";
+    }
+
+    this.setState({ music: soundtrackURL }, () => {
+      document.getElementById('rap').play();
+    });
+  }
+
+  initializeMap = () => {
+    const mapURL = baseURL + "/src/maps/" + this.state.map + ".tmx";
+    fetch(mapURL)
+    .then((response) => response.text())
+    .then((data) => {
+      tmx.parse(data, "", (err, map) => {
+        if(map.properties.red !== undefined) this.setBackgroundColor(map);
+        this.setMusic(map.properties.soundtrack);
+        map.layers.forEach((layer) => {
+          switch(layer.type)
+          {
+            case "tile":
+              this.buildTileLayer(layer);
+              break;
+            case "object":
+              this.buildObjectLayer(layer);
+              break;
+            default:
+              console.log("initializeMap(): Unknown layer type: " + layer.type);
+              break;
+          }
+        });
+      });
+    });
+  }
+
+  initializePlayer = (pos) => {
     let canvas = document.getElementById('board');
     let spriteURL = characterImagesBaseURL + this.state.playerCharacter + "/" + this.state.playerCostume + ".png";
 
     let e = this.world.Entity("player");
-    e.Component(new PositionComponent(this.state.levelStart));
+    if(pos !== undefined) e.Component(new PositionComponent(pos));
+    else e.Component(new PositionComponent(this.state.levelStart));
     e.Component(new SpriteComponent({ canvas: canvas, url: spriteURL, width: 48, height: 48,
       characterMap: this.state.characterMap, animation: this.state.animation, direction: this.state.direction }));
   }
@@ -301,6 +390,32 @@ class App extends Component {
 
   volume = (e) => {
     this.setState({ volume: e.target.volume });
+  }
+
+  keyDown = (e) => {
+    let newPos = { x: 0, y: 0 };
+    switch(e.key) {
+      case 'd':
+      case 'D':
+        newPos.x = 5;
+        this.setState({ direction: "right" });
+        break;
+      case 'a':
+      case 'A':
+        newPos.x = -5;
+        this.setState({ direction: "left" });
+        break;
+      default:
+        break;
+    }
+
+    if(newPos.x || newPos.y) {
+      let pos = this.world.Components["PositionComponent"]["player"];
+      newPos.x += pos.x;
+      newPos.y += pos.y;
+      this.initializePlayer(newPos);
+      this.centerCamera();
+    }
   }
 
   render() {
